@@ -119,6 +119,20 @@ app.get("/getSquads", async (req, res) => {
   }
 });
 
+app.get("/health", async (req, res) => {
+  try {
+    // Test database connection
+    await prisma.$queryRaw`SELECT 1`;
+    res
+      .status(200)
+      .json({ status: "healthy", message: "Database connection successful" });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ status: "unhealthy", message: "Database connection failed" });
+  }
+});
+
 app.listen(3000, () => {
   console.log("Server is listening on port 3000");
 });

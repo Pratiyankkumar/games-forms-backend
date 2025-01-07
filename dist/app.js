@@ -118,6 +118,20 @@ app.get("/getSquads", (req, res) => __awaiter(void 0, void 0, void 0, function* 
         });
     }
 }));
+app.get("/health", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        // Test database connection
+        yield prisma.$queryRaw `SELECT 1`;
+        res
+            .status(200)
+            .json({ status: "healthy", message: "Database connection successful" });
+    }
+    catch (error) {
+        res
+            .status(500)
+            .json({ status: "unhealthy", message: "Database connection failed" });
+    }
+}));
 app.listen(3000, () => {
     console.log("Server is listening on port 3000");
 });
