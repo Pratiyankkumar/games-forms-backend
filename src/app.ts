@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, SquadType } from "@prisma/client";
 import express from "express";
 import cors from "cors";
 
@@ -8,11 +8,36 @@ const prisma = new PrismaClient();
 app.use(cors());
 app.use(express.json());
 
+// Helper function to determine squad type based on player count
+function getSquadType(playerCount: number): SquadType {
+  switch (playerCount) {
+    case 1:
+      return "SINGLE";
+    case 2:
+      return "DUO";
+    case 3:
+      return "TRIPLE";
+    case 4:
+      return "SQUAD";
+    default:
+      throw new Error("Invalid number of players. Must be between 1 and 4");
+  }
+}
+
 app.post("/submit", async (req, res): Promise<void> => {
   const { email, players } = req.body;
 
   if (!email) {
     res.status(400).json({ error: "Email is required" });
+    return;
+  }
+
+  // Validate player count
+  if (!players || players.length < 1 || players.length > 4) {
+    res.status(400).json({
+      error: "Invalid player count",
+      details: "Number of players must be between 1 and 4",
+    });
     return;
   }
 
@@ -63,9 +88,13 @@ app.post("/submit", async (req, res): Promise<void> => {
 
     // Create squad and players in a transaction
     const result = await prisma.$transaction(async (tx) => {
-      // Create squad first
+      // Create squad first with appropriate type
+      const squadType = getSquadType(players.length);
       const newSquad = await tx.squad.create({
-        data: { email },
+        data: {
+          email,
+          type: squadType,
+        },
       });
 
       // Create all players
@@ -98,7 +127,48 @@ app.post("/submit", async (req, res): Promise<void> => {
 
 app.get("/getSquads", async (req, res) => {
   try {
+    const { type } = req.query;
+
+    const where = type ? { type: type as SquadType } : {};
+
     const squads = await prisma.squad.findMany({
+      where,
+      include: {
+        players: {
+          select: {
+            id: true,
+            name: true,
+            uId: true,
+          },
+        },
+      },
+    });
+
+    res.status(200).json(squads);
+  } catch (error: any) {
+    res.status(400).json({
+      error: "Failed to fetch squads",
+      details: error?.message || "Unknown error occurred",
+    });
+  }
+});
+
+app.get("/getSquadsByType/:type", async (req, res) => {
+  try {
+    const { type } = req.params;
+
+    if (!Object.values(SquadType).includes(type as SquadType)) {
+      res.status(400).json({
+        error: "Invalid squad type",
+        details: "Type must be SINGLE, DUO, TRIPLE, or SQUAD",
+      });
+      return;
+    }
+
+    const squads = await prisma.squad.findMany({
+      where: {
+        type: type as SquadType,
+      },
       include: {
         players: {
           select: {

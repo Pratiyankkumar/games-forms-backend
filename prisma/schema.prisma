@@ -1,9 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,19 +10,30 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Enum for squad types
+enum SquadType {
+  SINGLE
+  DUO
+  TRIPLE
+  SQUAD
+}
+
 model Player {
-  id     Int    @id @default(autoincrement())
-  name   String
-  uId    String @unique
-  squad  Squad? @relation(fields: [squadId], references: [id])
-  squadId Int?
+  id        Int      @id @default(autoincrement())
+  name      String
+  uId       String   @unique
+  squad     Squad?   @relation(fields: [squadId], references: [id])
+  squadId   Int?
   createdAt DateTime @default(now())
 }
 
 model Squad {
-  id      Int      @id @default(autoincrement())
-  players Player[] @relation
-  email String @unique
-  createdAt DateTime @default(now())
-}
+  id        Int       @id @default(autoincrement())
+  type      SquadType @default(SQUAD)
+  players   Player[]  @relation
+  email     String    @unique
+  createdAt DateTime  @default(now())
 
+  // Add constraint to ensure player count matches squad type
+  @@index([type])
+}
