@@ -19,11 +19,13 @@ model Player {
   uId    String @unique
   squad  Squad? @relation(fields: [squadId], references: [id])
   squadId Int?
+  createdAt DateTime @default(now())
 }
 
 model Squad {
   id      Int      @id @default(autoincrement())
   players Player[] @relation
   email String @unique
+  createdAt DateTime @default(now())
 }
 
